@@ -7,25 +7,26 @@ A comprehensive TOML parser extension for the Ring programming language, built a
 *   Cross-platform (Windows, Linux, FreeBSD)
 *   Parse TOML files and strings into Ring Lists.
 *   Supports all TOML data types, including strings, numbers, booleans, dates, times, arrays, and tables.
-*   Provides both a simple, high-level API for direct parsing and a more advanced, pointer-based API for fine-grained control.
 
 ## Getting Started
 
-### Prerequisites
+### Installation
 
-*   [Ring](http://ring-lang.net) programming language (1.22 or later)
-*   CMake (3.5 or later)
-*   C compiler (GCC, Clang, or MSVC)
-
-## Installation
-
-### Using RingPM
+#### Using RingPM
 
 ```shell
 ringpm install toml from ysdragon
 ```
 
-### Manual Build
+#### Manual Build
+
+##### Prerequisites
+
+*   [Ring](http://ring-lang.net) programming language (1.22 or later)
+*   CMake (3.5 or later)
+*   C compiler (GCC, Clang, or MSVC)
+
+##### Manual Build Steps
 
 1.  **Clone the repository:**
     ```bash
@@ -99,7 +100,7 @@ see aTomlList
 
 ## Examples
 
-The [`examples`](examples) directory contains several files demonstrating how to use the Ring TOML extension.
+The [**`examples`**](examples) directory contains several files demonstrating how to use the Ring TOML extension.
 
 *   [**`example1.ring`**](examples/example1.ring): Demonstrates basic TOML file parsing and how to access various data types using the `toml_get()` helper function.
 *   [**`example2.ring`**](examples/example2.ring): Shows how to parse an inline TOML string and convert the entire structure into a Ring list for easier manipulation.
