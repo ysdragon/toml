@@ -15,8 +15,8 @@ pTomlResult = toml_parse_file(cFile)
 
 // Check for parsing errors before proceeding
 if (isNull(pTomlResult)) {
-    ? "Error parsing file: " + toml_lasterror()   // Display last error message
-    bye                                           // Exit the program if parsing failed
+	? "Error parsing file: " + toml_lasterror()   // Display last error message
+	bye                                           // Exit the program if parsing failed
 }
 
 // 2. Define the keys we want to check for type information
@@ -25,30 +25,30 @@ aKeysToCheck = ["version", "is_active", "data_types", "title", "author", "databa
 
 // 3. Loop through the keys and check their types using toml_type()
 for cKey in aKeysToCheck {
-    see "Checking type for key: '" + cKey + "'" + "..."   // Display the current key being checked
+	see "Checking type for key: '" + cKey + "'" + "..."   // Display the current key being checked
 
-    // Use toml_type() to get the type constant for this key
-    nType = toml_type(pTomlResult, cKey)
+	// Use toml_type() to get the type constant for this key
+	nType = toml_type(pTomlResult, cKey)
 
-    // Use a switch statement to convert the numeric type constant to a human-readable description
-    switch nType {
-        case TOML_FP64
-            ?  "  -> Type is TOML_FP64 (Floating-Point Number)"    // Floating-point number type
-        case TOML_BOOLEAN
-            ? "  -> Type is TOML_BOOLEAN (Boolean)"                // Boolean (true/false) type
-        case TOML_ARRAY
-            ? "  -> Type is TOML_ARRAY (Array)"                    // Array type (ordered collection)
-        case TOML_STRING
-            ? "  -> Type is TOML_STRING (String)"                  // String type
-        case TOML_INT64
-            ? "  -> Type is TOML_INT64 (Integer)"                  // Integer number type
-        case TOML_TABLE
-            ? "  -> Type is TOML_TABLE (Table)"                    // Table type (key/value mapping)
-        case TOML_UNKNOWN
-            ? "  -> Key not found or type is unknown."             // Unknown or nonexistent key
-        else
-            ? "  -> Another TOML type (like Date/Time)."           // Other specialized TOML types
-    }
+	// Use a switch statement to convert the numeric type constant to a human-readable description
+	switch nType {
+		case TOML_FP64
+			?  "  -> Type is TOML_FP64 (Floating-Point Number)"    // Floating-point number type
+		case TOML_BOOLEAN
+			? "  -> Type is TOML_BOOLEAN (Boolean)"                // Boolean (true/false) type
+		case TOML_ARRAY
+			? "  -> Type is TOML_ARRAY (Array)"                    // Array type (ordered collection)
+		case TOML_STRING
+			? "  -> Type is TOML_STRING (String)"                  // String type
+		case TOML_INT64
+			? "  -> Type is TOML_INT64 (Integer)"                  // Integer number type
+		case TOML_TABLE
+			? "  -> Type is TOML_TABLE (Table)"                    // Table type (key/value mapping)
+		case TOML_UNKNOWN
+			? "  -> Key not found or type is unknown."             // Unknown or nonexistent key
+		else
+			? "  -> Another TOML type (like Date/Time)."           // Other specialized TOML types
+	}
 }
 
 ? nl + "Done!"                                                     // Print final message
