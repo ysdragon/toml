@@ -1,0 +1,31 @@
+title = "TOML Full Example"
+author = "Test User"
+is_active = true
+version = 1.0
+
+[database]
+ip_address = "192.168.1.1"
+port = 8001
+enabled = true
+data = [ "users", "posts", "comments" ]
+
+[database.user]
+name = "admin"
+role = "superuser"
+
+[servers.alpha]
+ip = "10.0.0.1"
+dc = "us-east-1"
+
+[servers.beta]
+ip = "10.0.0.2"
+dc = "us-west-1"
+
+[[products]]
+name = "Hammer"
+sku = 738594937
+
+[[products]]
+name = "Nail"
+sku = 284758393
+color = "gray"

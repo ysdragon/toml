@@ -1,0 +1,3 @@
+[submodule "src/tomlc17"]
+	path = src/tomlc17
+	url = https://github.com/cktan/tomlc17

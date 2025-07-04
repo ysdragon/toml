@@ -1,0 +1,104 @@
+title = "TOML Full Example"
+author = "Test User"
+is_active = true
+version = 1.0
+[data_types]
+string_basic = "I am a string. \"You can quote me\". Escapes: \\ \t \n \f \r"
+string_multiline_basic = """
+Roses are red
+Violets are blue"""
+
+string_multiline_trimmed = """
+The quick brown fox jumps over the lazy dog. \
+The quick brown fox jumps over the lazy dog. \
+The quick brown fox jumps over the lazy dog."""
+
+string_literal = 'C:\Users\John\Documents.txt'
+
+string_multiline_literal = '''
+The first rule of TOML is to not talk about TOML.
+The second rule is that backslashes \ and quotes " have no special meaning.
+'''
+
+integer_standard = 99
+integer_with_underscores = 1_000_000
+integer_hex = 0xDEADBEEF
+integer_oct = 0o755
+integer_bin = 0b11010110
+
+float_standard = 3.14159
+float_with_underscores = 9_224_617.445_991
+float_scientific = 6.022e23
+float_scientific_negative = -2E-2
+
+special_floats = [inf, +inf, -inf, nan, +nan, -nan]
+
+boolean_true = true
+boolean_false = false
+
+datetime_offset = 1979-05-27T07:32:00-08:00
+datetime_offset_zulu = 1979-05-27T00:32:00.999999Z
+datetime_local = 1979-05-27T07:32:00
+date_local = 1987-07-05
+time_local = 20:32:00.12345
+
+[database]
+ip_address = "192.168.1.1"
+port = 8001
+enabled = true
+data = [ "users", "posts", "comments" ]
+
+[database.user]
+name = "admin"
+role = "superuser"
+
+[servers.alpha]
+ip = "10.0.0.1"
+dc = "us-east-1"
+
+[servers.beta]
+ip = "10.0.0.2"
+dc = "us-west-1"
+
+point = { x = 1, y = 2, z = 3 }
+color = { name = "red", hex = "#FF0000" }
+
+style = { color = "blue", font = { name = "Arial", size = 12, bold = true } }
+
+integers = [ 1, 2, 3, 4, 5 ]
+colors = [ "red", "yellow", "green" ]
+
+mixed_types_array = [ 1, "two", 3.0, true, { name = "value" } ]
+
+nested_arrays = [ [ 1, 2 ], [ 3, 4, 5 ], [ [ "a", "b" ] ] ]
+
+multiline_array = [
+  "first item",
+  "second item",
+  "third item",
+]
+
+[[products]]
+name = "Hammer"
+sku = 738594937
+
+[[products]]
+name = "Nail"
+sku = 284758393
+color = "gray"
+
+[[people]]
+name = "Alice"
+email = "alice@example.com"
+
+[people.physical]
+color = "blue"
+shape = "circle"
+
+[[people]]
+name = "Bob"
+email = "bob@example.com"
+  
+[people.physical]
+color = "green"
+shape = "square"
