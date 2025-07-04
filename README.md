@@ -55,7 +55,7 @@ ringpm install toml from ysdragon
     cmake --build build
     ```
 
-    This will compile the extension and place the resulting shared library (`libring_toml.so` on Linux, `ring_toml.dll` on Windows) into the `lib/<os>/<arch>` directory.
+    This will compile the extension and place the resulting shared library (`libring_toml.so` on Linux or FreeBSD, `ring_toml.dll` on Windows) into the `lib/<os>/<arch>` directory.
 
 ## Usage
 
