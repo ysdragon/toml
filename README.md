@@ -4,7 +4,7 @@ A comprehensive TOML parser extension for the Ring programming language, built a
 
 ## Features
 
-*   Cross-platform (Windows, Linux, FreeBSD)
+*   Cross-platform (Linux, macOS, FreeBSD, and Windows).
 *   Parse TOML files and strings into Ring Lists.
 *   Supports all TOML data types, including strings, numbers, booleans, dates, times, arrays, and tables.
 
