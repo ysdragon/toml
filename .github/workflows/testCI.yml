@@ -5,17 +5,19 @@ on:
       - '**.ring'
       - '**.dll'
       - '**.so'
+      - '**.dylib'
+      - '.github/workflows/testCI.yml'
 
 jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Run tests
-        uses: ysdragon/ring-action@v1.0.6
+        uses: ysdragon/ring-action@v1.1.0
         with:
           file: "tests/TOML_test.ring"
