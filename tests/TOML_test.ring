@@ -1,7 +1,11 @@
 if (isWindows()) {
 	loadlib("../lib/windows/amd64/ring_toml.dll")
 elseif (isLinux())
-	loadlib("../lib/linux/amd64/libring_toml.so")
+	if (getarch() = "x64") {
+		loadlib("../lib/linux/amd64/libring_toml.so")
+	elseif (getarch() = "arm64")
+		loadlib("../lib/linux/arm64/libring_toml.so")
+	}
 elseif (isFreeBSD())
 	loadlib("../lib/freebsd/amd64/libring_toml.so")
 elseif (isMacOSX())
@@ -98,6 +102,8 @@ class TomlTest {
 		else
 			? "FAILURE: Some tests did not pass."
 		}
+
+		shutdown(0)
 	}
 
 	func test_easy_parse_file() {
