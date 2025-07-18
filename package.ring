@@ -55,7 +55,8 @@ aPackageInfo = [
 		"lib/freebsd/amd64/libring_toml.so"
 	],
 	:macosfiles = 	[
-
+		"lib/macos/amd64/libring_toml.dylib",
+		"lib/macos/arm64/libring_toml.dylib"
 	],
 	:windowsringfolderfiles = 	[
 
