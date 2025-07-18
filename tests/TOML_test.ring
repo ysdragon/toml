@@ -4,6 +4,12 @@ elseif (isLinux())
 	loadlib("../lib/linux/amd64/libring_toml.so")
 elseif (isFreeBSD())
 	loadlib("../lib/freebsd/amd64/libring_toml.so")
+elseif (isMacOSX())
+	if (getarch() = "x64") {
+		loadlib("../lib/macos/amd64/libring_toml.dylib")
+	elseif (getarch() = "arm64")
+		loadlib("../lib/macos/arm64/libring_toml.dylib")
+	}
 else
 	raise("Unsupported OS! You need to build the library for your OS.")
 }
