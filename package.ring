@@ -43,7 +43,8 @@ aPackageInfo = [
 		"lib/windows/amd64/ring_toml.dll"
 	],
 	:linuxfiles = 	[
-		"lib/linux/amd64/libring_toml.so"
+		"lib/linux/amd64/libring_toml.so",
+		"lib/linux/arm64/libring_toml.so"
 	],
 	:ubuntufiles = 	[
 
