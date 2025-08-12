@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(RingTOML)
 
+include(FetchContent)
+find_package(Git QUIET)
+
 # Get the Ring source directory from environment or use default
 if(NOT DEFINED ENV{RING})
 	set(RING_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../..")
@@ -16,12 +19,24 @@ set(RING_LIB "${RING_SOURCE}/lib")
 set(CODEGEN_SCRIPT "${RING_SOURCE}/extensions/codegen/parsec.ring")
 
 # Build the tomlc17 object library
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
+    FetchContent_Declare(
+        tomlc17_external
+        GIT_REPOSITORY https://github.com/cktan/tomlc17.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(tomlc17_external)
+    set(TOMLC17_SOURCE_DIR "${tomlc17_external_SOURCE_DIR}")
+else()
+    set(TOMLC17_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
+endif()
+
 add_library(tomlc17 OBJECT
-	src/tomlc17/src/tomlc17.c
+	${TOMLC17_SOURCE_DIR}/src/tomlc17.c
 )
 set_target_properties(tomlc17 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(tomlc17 PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17/src
+	${TOMLC17_SOURCE_DIR}/src
 )
 
 # Generate the C source code from the configuration file
@@ -29,7 +44,7 @@ add_custom_command(
 	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ring_toml.c
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
 	COMMAND ${RING_SOURCE}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_BINARY_DIR}/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.rh
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT}
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
 	COMMENT "Generating C code from tomlc17.cf"
 	VERBATIM
 )
@@ -47,13 +62,33 @@ else()
 	message(FATAL_ERROR "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LC)
-if(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "x86_64|amd64")
-	set(ARCH_DIR "amd64")
-elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "aarch64|arm64")
-	set(ARCH_DIR "arm64")
-else()
-	message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+# Determine architecture
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND DEFINED CMAKE_GENERATOR_PLATFORM)
+    if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+        set(ARCH_DIR "i386")
+    elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+        set(ARCH_DIR "amd64")
+    elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+        set(ARCH_DIR "arm64")
+    else()
+        message(WARNING "Unsupported CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}, falling back to CMAKE_SYSTEM_PROCESSOR")
+    endif()
+endif()
+
+# Fallback to CMAKE_SYSTEM_PROCESSOR if ARCH_DIR is not set
+if(NOT DEFINED ARCH_DIR)
+    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LC)
+    if(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "x86_64|amd64")
+        set(ARCH_DIR "amd64")
+    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "aarch64|arm64")
+        set(ARCH_DIR "arm64")
+    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "riscv64")
+        set(ARCH_DIR "riscv64")
+    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "i386|i686|x86")
+        set(ARCH_DIR "i386")
+    else()
+        message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
 endif()
 
 # Set the destination directory for the built library
