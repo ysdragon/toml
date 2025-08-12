@@ -40,14 +40,16 @@ target_include_directories(tomlc17 PUBLIC
 )
 
 # Generate the C source code from the configuration file
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ring_toml.c
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
-	COMMAND ${RING_SOURCE}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_BINARY_DIR}/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.rh
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
-	COMMENT "Generating C code from tomlc17.cf"
-	VERBATIM
-)
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c")
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
+        COMMAND ${RING_SOURCE}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.rh
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
+        COMMENT "Generating C code from tomlc17.cf"
+        VERBATIM
+    )
+endif()
 
 # Determine OS and Architecture specific paths
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -94,9 +96,9 @@ endif()
 # Set the destination directory for the built library
 set(LIB_DEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${OS_DIR}/${ARCH_DIR}")
 
-# Create the Ring markdown extension shared library
-add_library(ring_toml SHARED 
-	${CMAKE_CURRENT_BINARY_DIR}/ring_toml.c
+# Create the Ring TOML extension shared library
+add_library(ring_toml SHARED
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
 )
 
 # Include directories
