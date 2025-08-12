@@ -1,18 +1,8 @@
 name: macOS Build
 
 on:
-  push:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/macos_build.yml'
-  pull_request:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/macos_build.yml'
+  workflow_call:
+
 
 jobs:
   build:

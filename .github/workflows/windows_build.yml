@@ -1,18 +1,8 @@
 name: Windows Build
 
 on:
-  push:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/windows_build.yml'
-  pull_request:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/windows_build.yml'
+  workflow_call:
+
 
 jobs:
   build:
@@ -45,7 +35,6 @@ jobs:
       shell: cmd
       run: |
         cd ring\language
-        REM Use the matrix variable to set the architecture
         cmake . -A ${{ matrix.arch }}
         cmake --build . --config Release
         cmake --install .

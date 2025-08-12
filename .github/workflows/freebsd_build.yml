@@ -1,18 +1,8 @@
 name: FreeBSD Build
 
 on:
-  push:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/freebsd_build.yml'
-  pull_request:
-    paths:
-    - '**.c'
-    - '**.h'
-    - '**/CMakeLists.txt'
-    - '.github/workflows/freebsd_build.yml'
+  workflow_call:
+
 
 jobs:
   build:
@@ -46,22 +36,14 @@ jobs:
           pkg install -y cmake git ninja pkgconf zenity gtk4
 
         run: |
-          # Clone Ring Language
           git clone --branch v1.23 --depth 1 https://github.com/ring-lang/ring.git ring
           cd ring
-
-          # Set RING environment variable
           export RING=$(pwd)
-
-          # Build and Install Ring Language
           cd language
           cmake . -DCMAKE_BUILD_TYPE=Release -GNinja
           ninja install
           cd ../..
-
           rm -rf lib
-
-          # Build toml lib
           cmake . -DCMAKE_BUILD_TYPE=Release -GNinja
           ninja
 
