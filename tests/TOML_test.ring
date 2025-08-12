@@ -1,24 +1,30 @@
 if (isWindows()) {
-	loadlib("../lib/windows/amd64/ring_toml.dll")
+	loadlib("lib/windows/amd64/ring_toml.dll")
 elseif (isLinux())
 	if (getarch() = "x64") {
-		loadlib("../lib/linux/amd64/libring_toml.so")
+		loadlib("lib/linux/amd64/libring_toml.so")
 	elseif (getarch() = "arm64")
-		loadlib("../lib/linux/arm64/libring_toml.so")
+		loadlib("lib/linux/arm64/libring_toml.so")
 	}
 elseif (isFreeBSD())
-	loadlib("../lib/freebsd/amd64/libring_toml.so")
+	if (getarch() = "x64") {
+		loadlib("lib/freebsd/amd64/libring_toml.so")
+	elseif (getarch() = "arm64")
+		loadlib("lib/freebsd/arm64/libring_toml.so")
+	}
 elseif (isMacOSX())
 	if (getarch() = "x64") {
-		loadlib("../lib/macos/amd64/libring_toml.dylib")
+		loadlib("lib/macos/amd64/libring_toml.dylib")
 	elseif (getarch() = "arm64")
-		loadlib("../lib/macos/arm64/libring_toml.dylib")
+		loadlib("lib/macos/arm64/libring_toml.dylib")
 	}
 else
 	raise("Unsupported OS! You need to build the library for your OS.")
 }
+
 load "stdlibcore.ring"
-load "../src/ring_toml.rh"
+load "src/toml.ring"
+load "src/toml.rh"
  
 func main() {
 	oTester = new TomlTest()
@@ -26,7 +32,7 @@ func main() {
 }
 
 class TomlTest {
-	cTestFile = "test.toml"
+	cTestFile = "tests/test.toml"
 	pTomlResult
 	aTomlList
 
@@ -167,69 +173,4 @@ class TomlTest {
 		nProductSku = toml_get(pTomlResult, "products[1].sku")
 		assert(nProductSku = 738594937, "Ring helper should handle numeric values in array of tables.")
 	}
-}
-
-/*
- *  toml_get(aTomlData, "key.subkey[index]")
- *  This helper function finds a value in the parsed TOML data using a dot-separated path.
- */
-func toml_get(data, path) {
-	aParts = split(path, ".")
-	current_data = toml2list(data)
-	for part in aParts {
-		cKey = part
-		nIndex = 0
-
-		// Check for array index like "ports[1]"
-		if (right(cKey, 1) = "]") {
-			nPos = substr(cKey, "[")
-			if (nPos > 0) {
-				nIndex = number(substr(cKey, nPos + 1, len(cKey) - nPos - 1))
-				cKey = left(cKey, nPos - 1)
-			}
-		}
-
-		// Find the key in the current table
-		if (!is_a_toml_table(current_data)) {
-			return NULL
-		}
-
-		found_item = find(current_data, cKey, 1)
-
-		if (!found_item)  {
-			return NULL
-		}
-
-		// Move to the value part
-		current_data = current_data[found_item][2] 
-
-		// If an index was specified, access that element
-		if (nIndex > 0) {
-			if (islist(current_data) && nIndex <= len(current_data)) {
-				current_data = current_data[nIndex]
-			else
-				return NULL
-			}
-		}
-	}
-
-	return current_data
-}
-
-// Checks if a list represents a TOML table (list of [key, value] pairs)
-func is_a_toml_table(list) {
-	if (!islist(list)) {
-		return false
-	}
-
-	if (len(list) = 0) {
-		return false
-	}
-
-	for item in list {
-		if (!islist(item) || len(item) != 2 || !isstring(item[1])) {
-			return false
-		}
-	}
-	return true
 }
