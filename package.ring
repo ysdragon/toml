@@ -40,7 +40,9 @@ aPackageInfo = [
 
 	],
 	:windowsfiles = 	[
-		"lib/windows/amd64/ring_toml.dll"
+		"lib/windows/amd64/ring_toml.dll",
+		"lib/windows/arm64/ring_toml.dll",
+		"lib/windows/i386/ring_toml.dll"
 	],
 	:linuxfiles = 	[
 		"lib/linux/amd64/libring_toml.so",
