@@ -1,30 +1,36 @@
 if (isWindows()) {
-	loadlib("lib/windows/amd64/ring_toml.dll")
+	if (getarch() = "x64") {
+		loadlib("../lib/windows/amd64/ring_toml.dll")
+	elseif (getarch() = "arm64")
+		loadlib("../lib/windows/arm64/ring_toml.dll")
+	elseif (getarch() = "x86")
+		loadlib("../lib/windows/i386/ring_toml.dll")
+	}
 elseif (isLinux())
 	if (getarch() = "x64") {
-		loadlib("lib/linux/amd64/libring_toml.so")
+		loadlib("../lib/linux/amd64/libring_toml.so")
 	elseif (getarch() = "arm64")
 		loadlib("lib/linux/arm64/libring_toml.so")
 	}
 elseif (isFreeBSD())
 	if (getarch() = "x64") {
-		loadlib("lib/freebsd/amd64/libring_toml.so")
+		loadlib("../lib/freebsd/amd64/libring_toml.so")
 	elseif (getarch() = "arm64")
-		loadlib("lib/freebsd/arm64/libring_toml.so")
+		loadlib("../lib/freebsd/arm64/libring_toml.so")
 	}
 elseif (isMacOSX())
 	if (getarch() = "x64") {
-		loadlib("lib/macos/amd64/libring_toml.dylib")
+		loadlib("../lib/macos/amd64/libring_toml.dylib")
 	elseif (getarch() = "arm64")
-		loadlib("lib/macos/arm64/libring_toml.dylib")
+		loadlib("../lib/macos/arm64/libring_toml.dylib")
 	}
 else
 	raise("Unsupported OS! You need to build the library for your OS.")
 }
 
 load "stdlibcore.ring"
-load "src/toml.ring"
-load "src/toml.rh"
+load "../src/toml.ring"
+load "../src/toml.rh"
  
 func main() {
 	oTester = new TomlTest()
@@ -32,7 +38,7 @@ func main() {
 }
 
 class TomlTest {
-	cTestFile = "tests/test.toml"
+	cTestFile = "test.toml"
 	pTomlResult
 	aTomlList
 
