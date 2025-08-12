@@ -31,7 +31,7 @@ aPackageInfo = [
 		"src/tomlc17.cf",
 		"src/utils/color.ring",
 		"src/utils/install.ring",
-		"src/utils/unintall.ring",
+		"src/utils/uninstall.ring",
 		"examples/example.toml",
 		"examples/example1.ring",
 		"examples/example2.ring",
