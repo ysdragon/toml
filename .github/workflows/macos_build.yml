@@ -1,0 +1,62 @@
+name: macOS Build
+
+on:
+  push:
+    paths:
+    - '**.c'
+    - '**.h'
+    - '**/CMakeLists.txt'
+    - '.github/workflows/macos_build.yml'
+  pull_request:
+    paths:
+    - '**.c'
+    - '**.h'
+    - '**/CMakeLists.txt'
+    - '.github/workflows/macos_build.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+        - os: macos-13
+          arch: amd64
+          name: macos-amd64
+        - os: macos-latest
+          arch: arm64
+          name: macos-arm64
+
+    steps:
+    - name: Checkout toml
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Clone Ring Language
+      uses: actions/checkout@v4
+      with:
+        repository: ring-lang/ring
+        path: ring
+        ref: v1.23
+
+    - name: Build and Install Ring Language
+      run: |
+        cd ring/language
+        cmake . -DCMAKE_BUILD_TYPE=Release
+        make install
+
+    - name: Set RING environment variable
+      run: echo "RING=$(pwd)/ring" >> $GITHUB_ENV
+
+    - name: Build toml lib
+      run: |
+        rm -rf lib
+        cmake . -DCMAKE_BUILD_TYPE=Release
+        make
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: toml-${{ matrix.name }}
+        path: lib

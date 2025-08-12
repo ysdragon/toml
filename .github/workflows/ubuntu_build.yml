@@ -1,0 +1,112 @@
+name: Ubuntu Build
+
+on:
+  push:
+    paths:
+    - '**.c'
+    - '**.h'
+    - '**/CMakeLists.txt'
+    - '.github/workflows/ubuntu_build.yml'
+  pull_request:
+    paths:
+    - '**.c'
+    - '**.h'
+    - '**/CMakeLists.txt'
+    - '.github/workflows/ubuntu_build.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-24.04
+          arch: amd64
+          name: ubuntu-24.04-amd64
+        - os: ubuntu-24.04-arm
+          arch: arm64
+          name: ubuntu-24.04-arm64
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential zenity libgtk-4-dev
+
+    - name: Checkout toml
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Clone Ring Language
+      uses: actions/checkout@v4
+      with:
+        repository: ring-lang/ring
+        path: ring
+        ref: v1.23
+
+    - name: Build and Install Ring Language
+      run: |
+        cd ring/language
+        cmake . -DCMAKE_BUILD_TYPE=Release
+        make install
+
+    - name: Set RING environment variable
+      run: echo "RING=$(pwd)/ring" >> $GITHUB_ENV
+
+    - name: Build toml lib
+      run: |
+        rm -rf lib
+        cmake . -DCMAKE_BUILD_TYPE=Release
+        make
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: toml-${{ matrix.name }}
+        path: lib
+  # build-riscv64:
+  #   runs-on: ubuntu-latest
+  #   name: Build on RISC-V using run-on-arch
+
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+
+  #     - name: Build artifact using run-on-arch
+  #       uses: uraimo/run-on-arch-action@v3
+  #       with:
+  #         arch: none
+  #         base_image: --platform=linux/riscv64 riscv64/ubuntu:24.04
+
+  #         githubToken: ${{ github.token }}
+
+  #         setup: |
+  #           mkdir -p "${PWD}/artifacts"
+
+  #         dockerRunArgs: |
+  #           --volume "${PWD}/artifacts:/artifacts"
+
+  #         install: |
+  #           apt-get update -q -y
+  #           apt-get install -q -y git cmake build-essential libgtk-3-dev
+
+  #         run: |
+  #           git clone https://github.com/ring-lang/ring.git /ring
+  #           cd /ring/language
+  #           cmake . -DCMAKE_BUILD_TYPE=Release
+  #           make install
+
+  #           cd /work
+  #           cmake . -DCMAKE_BUILD_TYPE=Release
+  #           make
+
+  #           cp -r ./lib /artifacts/
+
+  #     - name: Upload Artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: toml-ubuntu-24.04-riscv64
+  #         path: ./artifacts/lib
