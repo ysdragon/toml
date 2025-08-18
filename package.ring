@@ -21,14 +21,13 @@ aPackageInfo = [
 		]
 	],
 	:files = 	[
-		"README.md",
-		"CMakeLists.txt",
 		"lib.ring",
 		"main.ring",
 		"src/toml.ring",
 		"src/toml.rh",
 		"src/ring_toml.c",
 		"src/tomlc17.cf",
+		"CMakeLists.txt",
 		"src/utils/color.ring",
 		"src/utils/install.ring",
 		"src/utils/uninstall.ring",
@@ -38,7 +37,9 @@ aPackageInfo = [
 		"examples/example3.ring",
 		"examples/example4.ring",
 		"tests/test.toml",
-		"tests/TOML_test.ring"
+		"tests/TOML_test.ring",
+		"README.md",
+		"LICENSE"
 	],
 	:ringfolderfiles = 	[
 
