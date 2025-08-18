@@ -1,11 +1,11 @@
 load "stdlibcore.ring"
 
-if isWindows()
-	# Enable unicode support in Windows CMD/PowerShell
+if (isWindows()) {
+	// Enable unicode support in Windows CMD/PowerShell
 	systemSilent("chcp 65001")
-ok
+}
 
-# Color list
+// Color list
 cColors = [
     :RED = "31",
     :GREEN = "32",
@@ -24,7 +24,7 @@ cColors = [
     :BRIGHT_WHITE = "1;37"
 ]
 
-# Style list
+// Style list
 cStyles = [
     :RESET = "0",
     :BOLD = "1",
@@ -35,31 +35,31 @@ cStyles = [
     :HIDDEN = "8"
 ]
 
-func setColor(colorCode)
+func setColor(colorCode) {
     return char(27) + "[" + colorCode + "m"
+}
 
-func resetColor()
+func resetColor() {
     return char(27) + "[0m"
+}
 
-# Color text with optional style
-func colorText(params)
+// Color text with optional style
+func colorText(params) {
     text = params[:text]
     colorKey = params[:color]
     styleCode = ""
-    if not isNull(params[:style])
+    if !(isNull(params[:style])) {
         styleCode = cStyles[params[:style]]
-    ok
-    if isString(colorKey)
+    }
+    if (isString(colorKey)) {
         colorCode = cColors[colorKey]
     else
         colorCode = colorKey
-    ok
+    }
     fullCode = colorCode
-    if styleCode != ""
+    if (styleCode != "") {
         fullCode = styleCode + ";" + colorCode
-    ok
+    }
     return setColor(fullCode) + text + resetColor()
-
-
-
+}
 

@@ -9,123 +9,122 @@
 load "stdlibcore.ring"
 load "src/utils/color.ring"
 
-# Default library settings
+// Default library settings
 cLibPrefix = "lib"
 cPathSep = "/"
 
-# Platform detection and configuration
-switch true
-	on isWindows()
+// Platform detection and configuration
+switch (true) {
+	case isWindows()
 		cLibPrefix = ""
 		cPathSep = "\\"
 		cLibExt = ".dll"
 		cOSName = "windows"
-	on isLinux()
+	case isLinux()
 		cLibExt = ".so"
 		cOSName = "linux"
-	on isFreeBSD()
+	case isFreeBSD()
 		cLibExt = ".so"
 		cOSName = "freebsd"
-	on isMacOSX()
+	case isMacOSX()
 		cLibExt = ".dylib"
 		cOSName = "macos"
-	other
+	else
 		? colorText([:text = "Error: Unsupported operating system detected!", :color = :BRIGHT_RED, :style = :BOLD])
 		return
+}
 
-off
-
-# Get system architecture
+// Get system architecture
 cArchName = getarch()
-switch cArchName
-	on "x86"
+switch (cArchName) {
+	case "x86"
 		cArchName = "i386"
-	on "x64"
+	case "x64"
 		cArchName = "amd64"
-	on "arm64"
+	case "arm64"
 		cArchName = "arm64"
-	other
+	else
 		? colorText([:text = "Error: Unsupported architecture: " + cArchName, :color = :BRIGHT_RED, :style = :BOLD])
 		return
-off
+}
 
-# Construct the package path
+// Construct the package path
 cPackagePath = exefolder() + ".." + cPathSep + "tools" + cPathSep + "ringpm" + cPathSep + "packages" + cPathSep + "toml"
 
-# Construct the library path
+// Construct the library path
 cLibPath = cPackagePath + cPathSep + "lib" + cPathSep + 
 		cOSName + cPathSep + cArchName + cPathSep + cLibPrefix + "ring_toml" + cLibExt
 
-# Verify library exists
-if not fexists(cLibPath)
+// Verify library exists
+if (!fexists(cLibPath)) {
 	? colorText([:text = "Error: TOML library not found!", :color = :BRIGHT_RED, :style = :BOLD])
 	? colorText([:text = "Expected location: ", :color = :YELLOW]) + colorText([:text = cLibPath, :color = :CYAN])
 	? colorText([:text = "Please ensure the library is built for your platform (" + cOSName + "/" + cArchName + ")", :color = :BRIGHT_MAGENTA])
 	? colorText([:text = "You can refer to README.md for build instructions: ", :color = :CYAN]) + colorText([:text = cPackagePath + cPathSep + "README.md", :color = :YELLOW])
 	return
-ok
+}
 
-# Install library based on platform
-try
-	if isWindows()
+// Install library based on platform
+try {
+	if (isWindows()) {
 		systemSilent("copy /y " + '"' + cLibPath + '" "' + exefolder() + '"')
 	else
 		cLibDir = exefolder() + ".." + cPathSep + "lib"
-		if isFreeBSD() or isMacOSX()
+		if (isFreeBSD() || isMacOSX()) {
 			cDestDir = "/usr/local/lib"
-		but isLinux()
+		elseif (isLinux())
 			cDestDir = "/usr/lib"
-		ok
+		}
 		cCommand1 = 'ln -sf "' + cLibPath + '" "' + cLibDir + '"'
 		cCommand2 = 'which sudo >/dev/null 2>&1 && sudo ln -sf "' + cLibPath + '" "' + cDestDir + 
 				'" || (which doas >/dev/null 2>&1 && doas ln -sf "' + cLibPath + '" "' + cDestDir + 
 				'" || ln -sf "' + cLibPath + '" "' + cDestDir + '")'
 		system(cCommand1)
 		system(cCommand2)
-	ok
+	}
 
-	# Copy examples to the samples/UsingTOML directory
+	// Copy examples to the samples/UsingTOML directory
 	cCurrentDir = currentdir()
 	cExamplesPath = cPackagePath + cPathSep + "examples"
 	cSamplesPath = exefolder() + ".." + cPathSep + "samples" + cPathSep + "UsingTOML"
 
-	# Ensure the samples directory exists and create it if not
-	if not direxists(exefolder() + ".." + cPathSep + "samples")
+	// Ensure the samples directory exists and create it if not
+	if (!direxists(exefolder() + ".." + cPathSep + "samples")) {
 		makeDir(exefolder() + ".." + cPathSep + "samples")
-	ok
+	}
 
-	# Create the UsingTOML directory
+	// Create the UsingTOML directory
 	makeDir(cSamplesPath)
 
-	# Change to the samples directory
+	// Change to the samples directory
 	chdir(cSamplesPath)
 
-	# Loop through the examples and copy them to the samples directory
-	for item in dir(cExamplesPath) 
-		if item[2]
+	// Loop through the examples and copy them to the samples directory
+	for item in dir(cExamplesPath) {
+		if (item[2]) {
 			OSCopyFolder(cExamplesPath + cPathSep, item[1])
 		else
 			OSCopyFile(cExamplesPath + cPathSep + item[1])
-		ok
-	next
+		}
+	}
 	
-	# Change back to the original directory
+	// Change back to the original directory
 	chdir(cCurrentDir)
 
-	# Check if toml.ring exists in the exefolder
-	if fexists(exefolder() + "toml.ring")
-		# Remove the existing toml.ring file
+	// Check if toml.ring exists in the exefolder
+	if (fexists(exefolder() + "toml.ring")) {
+		// Remove the existing toml.ring file
 		remove(exefolder() + "toml.ring")
 
-		# Write the load command to the toml.ring file
+		// Write the load command to the toml.ring file
 		write(exefolder() + "load" + cPathSep + "toml.ring", `load "/../../tools/ringpm/packages/toml/lib.ring"`)
-	ok
+	}
 	
-	# Ensure the Ring2EXE libs directory exists
-	if direxists(exefolder() + ".." + cPathSep + "tools" + cPathSep + "ring2exe" + cPathSep + "libs")
-		# Write the library definition to the toml.ring file for Ring2EXE
+	// Ensure the Ring2EXE libs directory exists
+	if (direxists(exefolder() + ".." + cPathSep + "tools" + cPathSep + "ring2exe" + cPathSep + "libs")) {
+		// Write the library definition to the toml.ring file for Ring2EXE
 		write(exefolder() + ".." + cPathSep + "tools" + cPathSep + "ring2exe" + cPathSep + "libs" + cPathSep + "toml.ring", getRing2EXEContent())
-	ok
+	}
 	
 	? colorText([:text = "Successfully installed Ring TOML!", :color = :BRIGHT_GREEN, :style = :BOLD])
 	? colorText([:text = "You can refer to samples in: ", :color = :CYAN]) + colorText([:text = cSamplesPath, :color = :YELLOW])
@@ -133,10 +132,10 @@ try
 catch
 	? colorText([:text = "Error: Failed to install Ring TOML!", :color = :BRIGHT_RED, :style = :BOLD])
 	? colorText([:text = "Details: ", :color = :YELLOW]) + colorText([:text = cCatchError, :color = :CYAN])
-done
+}
 
 
-func getRing2EXEContent
+func getRing2EXEContent() {
 	return `aLibrary = [:name = :toml,
 	 :title = "TOML",
 	 :windowsfiles = [
@@ -156,3 +155,4 @@ func getRing2EXEContent
 	 :macosxdep = "",
 	 :freebsddep = ""
 	]`
+}
