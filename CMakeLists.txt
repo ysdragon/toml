@@ -6,17 +6,17 @@ find_package(Git QUIET)
 
 # Get the Ring source directory from environment or use default
 if(NOT DEFINED ENV{RING})
-	set(RING_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-	message(STATUS "RING_SOURCE not defined, using default: ${RING_SOURCE}")
+	set(RING "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+	message(STATUS "RING not defined, using default: ${RING}")
 else()
-	set(RING_SOURCE $ENV{RING})
-	message(STATUS "Using RING_SOURCE from environment: ${RING_SOURCE}")
+	set(RING $ENV{RING})
+	message(STATUS "Using Ring from environment: ${RING}")
 endif()
 
 # Set paths
-set(RING_INCLUDE "${RING_SOURCE}/language/include")
-set(RING_LIB "${RING_SOURCE}/lib")
-set(CODEGEN_SCRIPT "${RING_SOURCE}/extensions/codegen/parsec.ring")
+set(RING_INCLUDE "${RING}/language/include")
+set(RING_LIB "${RING}/lib")
+set(CODEGEN_SCRIPT "${RING}/extensions/codegen/parsec.ring")
 
 # Build the tomlc17 object library
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
@@ -27,12 +27,20 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
     )
     FetchContent_MakeAvailable(tomlc17_external)
     set(TOMLC17_SOURCE_DIR "${tomlc17_external_SOURCE_DIR}")
+    if(EXISTS "${TOMLC17_SOURCE_DIR}/tomlc17.c")
+        set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/tomlc17.c")
+    elseif(EXISTS "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
+        set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
+    else()
+        message(FATAL_ERROR "Could not find tomlc17.c in fetched tomlc17 repository.")
+    endif()
 else()
     set(TOMLC17_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
+    set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
 endif()
 
 add_library(tomlc17 OBJECT
-	${TOMLC17_SOURCE_DIR}/src/tomlc17.c
+	${TOMLC17_C_FILE}
 )
 set_target_properties(tomlc17 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(tomlc17 PUBLIC
@@ -44,7 +52,7 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c")
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
-        COMMAND ${RING_SOURCE}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.rh
+        COMMAND ${RING}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.rh
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
         COMMENT "Generating C code from tomlc17.cf"
         VERBATIM
