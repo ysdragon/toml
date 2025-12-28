@@ -1,158 +1,334 @@
 /*
 	Ring TOML Library Install Script
 	----------------------------------
-	This script installs the Ring TOML library for the current platform.
-	It detects the OS and architecture, then copies or symlinks the library to the 
-	appropriate system location.
+	Installs Ring TOML library for the current platform.
+	Detects OS and architecture, then copies or symlinks the library
+	to the appropriate system location.
 */
 
 load "stdlibcore.ring"
 load "src/utils/color.ring"
 
-// Default library settings
-cLibPrefix = "lib"
-cPathSep = "/"
+# ============================================================================
+# Constants
+# ============================================================================
 
-// Platform detection and configuration
-switch (true) {
-	case isWindows()
-		cLibPrefix = ""
-		cPathSep = "\\"
-		cLibExt = ".dll"
-		cOSName = "windows"
-	case isLinux()
-		cLibExt = ".so"
-		cOSName = "linux"
-	case isFreeBSD()
-		cLibExt = ".so"
-		cOSName = "freebsd"
-	case isMacOSX()
-		cLibExt = ".dylib"
-		cOSName = "macos"
-	else
-		? colorText([:text = "Error: Unsupported operating system detected!", :color = :BRIGHT_RED, :style = :BOLD])
-		return
+C_PRETTY_NAME      = "TOML"
+C_PACKAGE_NAME     = "toml"
+C_NEW_PACKAGE_NAME = C_PACKAGE_NAME
+C_LIB_NAME         = "ring_" + C_PACKAGE_NAME
+C_SAMPLES_DIR      = "Using" + C_PRETTY_NAME
+
+# ============================================================================
+# Main Entry Point
+# ============================================================================
+
+func main() {
+	new Installer()
 }
 
-// Get system architecture
-cArchName = getarch()
-switch (cArchName) {
-	case "x86"
-		cArchName = "i386"
-	case "x64"
-		cArchName = "amd64"
-	case "arm64"
-		cArchName = "arm64"
-	else
-		? colorText([:text = "Error: Unsupported architecture: " + cArchName, :color = :BRIGHT_RED, :style = :BOLD])
-		return
-}
+# ============================================================================
+# Installer Class
+# ============================================================================
 
-// Construct the package path
-cPackagePath = exefolder() + ".." + cPathSep + "tools" + cPathSep + "ringpm" + cPathSep + "packages" + cPathSep + "toml"
+class Installer {
 
-// Construct the library path
-cLibPath = cPackagePath + cPathSep + "lib" + cPathSep + 
-		cOSName + cPathSep + cArchName + cPathSep + cLibPrefix + "ring_toml" + cLibExt
+	# Platform configuration
+	cOSName    = ""
+	cArchName  = ""
+	cLibPrefix = ""
+	cLibExt    = ""
+	cPathSep   = "/"
+	lIsMusl    = false
 
-// Verify library exists
-if (!fexists(cLibPath)) {
-	? colorText([:text = "Error: TOML library not found!", :color = :BRIGHT_RED, :style = :BOLD])
-	? colorText([:text = "Expected location: ", :color = :YELLOW]) + colorText([:text = cLibPath, :color = :CYAN])
-	? colorText([:text = "Please ensure the library is built for your platform (" + cOSName + "/" + cArchName + ")", :color = :BRIGHT_MAGENTA])
-	? colorText([:text = "You can refer to README.md for build instructions: ", :color = :CYAN]) + colorText([:text = cPackagePath + cPathSep + "README.md", :color = :YELLOW])
-	return
-}
+	# Paths
+	cPackagePath  = ""
+	cLibPath      = ""
+	cSamplesPath  = ""
+	cExamplesPath = ""
 
-// Install library based on platform
-try {
-	if (isWindows()) {
-		systemSilent("copy /y " + '"' + cLibPath + '" "' + exefolder() + '"')
-	else
-		cLibDir = exefolder() + ".." + cPathSep + "lib"
-		if (isFreeBSD() || isMacOSX()) {
-			cDestDir = "/usr/local/lib"
+	func init() {
+		if (!detectPlatform()) {
+			return
+		}
+
+		if (!detectArchitecture()) {
+			return
+		}
+
+		initializePaths()
+
+		if (!verifyLibrary()) {
+			return
+		}
+
+		performInstallation()
+
+	}
+
+	# ========================================================================
+	# Platform Detection
+	# ========================================================================
+
+	func detectPlatform() {
+		if (isWindows()) {
+			configurePlatform("windows", "", ".dll", "\\")
 		elseif (isLinux())
-			cDestDir = "/usr/lib"
-		}
-		cCommand1 = 'ln -sf "' + cLibPath + '" "' + cLibDir + '"'
-		cCommand2 = 'which sudo >/dev/null 2>&1 && sudo ln -sf "' + cLibPath + '" "' + cDestDir + 
-				'" || (which doas >/dev/null 2>&1 && doas ln -sf "' + cLibPath + '" "' + cDestDir + 
-				'" || ln -sf "' + cLibPath + '" "' + cDestDir + '")'
-		system(cCommand1)
-		system(cCommand2)
-	}
-
-	// Copy examples to the samples/UsingTOML directory
-	cCurrentDir = currentdir()
-	cExamplesPath = cPackagePath + cPathSep + "examples"
-	cSamplesPath = exefolder() + ".." + cPathSep + "samples" + cPathSep + "UsingTOML"
-
-	// Ensure the samples directory exists and create it if not
-	if (!direxists(exefolder() + ".." + cPathSep + "samples")) {
-		makeDir(exefolder() + ".." + cPathSep + "samples")
-	}
-
-	// Create the UsingTOML directory
-	makeDir(cSamplesPath)
-
-	// Change to the samples directory
-	chdir(cSamplesPath)
-
-	// Loop through the examples and copy them to the samples directory
-	for item in dir(cExamplesPath) {
-		if (item[2]) {
-			OSCopyFolder(cExamplesPath + cPathSep, item[1])
+			configurePlatform("linux", "lib", ".so", "/")
+			detectMusl()
+		elseif (isFreeBSD())
+			configurePlatform("freebsd", "lib", ".so", "/")
+		elseif (isMacOSX())
+			configurePlatform("macos", "lib", ".dylib", "/")
 		else
-			OSCopyFile(cExamplesPath + cPathSep + item[1])
+			printError("Unsupported operating system detected!")
+			return false
+		}
+		return true
+	}
+
+	func detectMusl() {
+		# Detect musl libc by checking ldd output
+		cOutput = systemCmd("sh -c 'ldd 2>&1'")
+		if (substr(cOutput, "musl")) {
+			lIsMusl = true
 		}
 	}
-	
-	// Change back to the original directory
-	chdir(cCurrentDir)
 
-	// Check if toml.ring exists in the exefolder
-	if (fexists(exefolder() + "toml.ring")) {
-		// Remove the existing toml.ring file
-		remove(exefolder() + "toml.ring")
+	func configurePlatform(osName, libPrefix, libExt, pathSep) {
+		cOSName    = osName
+		cLibPrefix = libPrefix
+		cLibExt    = libExt
+		cPathSep   = pathSep
+	}
 
-		// Write the load command to the toml.ring file
-		write(exefolder() + "load" + cPathSep + "toml.ring", `load "/../../tools/ringpm/packages/toml/lib.ring"`)
+	func detectArchitecture() {
+		cArchName = getarch()
+
+		switch (cArchName) {
+			case "x86"
+				cArchName = "i386"
+			case "x64"
+				cArchName = "amd64"
+			case "arm64"
+			else
+				printError("Unsupported architecture: " + cArchName)
+				return false
+		}
+
+		return true
+	}
+
+	# ========================================================================
+	# Path Configuration
+	# ========================================================================
+
+	func initializePaths() {
+		cPackagePath = buildPath([
+			exefolder(), "..", "tools", "ringpm", "packages", C_PACKAGE_NAME
+		])
+
+		# Build library path - use musl subdirectory on Linux if musl is detected
+		if (lIsMusl) {
+			cLibPath = buildPath([
+				cPackagePath, "lib", cOSName, "musl", cArchName,
+				cLibPrefix + C_LIB_NAME + cLibExt
+			])
+		else
+			cLibPath = buildPath([
+				cPackagePath, "lib", cOSName, cArchName,
+				cLibPrefix + C_LIB_NAME + cLibExt
+			])
+		}
+
+		cExamplesPath = buildPath([cPackagePath, "examples"])
+		cSamplesPath  = buildPath([exefolder(), "..", "samples", C_SAMPLES_DIR])
+	}
+
+	func verifyLibrary() {
+		if (fexists(cLibPath)) {
+			return true
+		}
+
+		printError(C_PRETTY_NAME + " library not found!")
+		printSubStep("Expected location: " + cLibPath)
+		if (lIsMusl) {
+			printInfo("Detected musl libc environment (Alpine Linux, etc.)")
+			printSubStep("Ensure library is built for: " + cOSName + "/musl/" + cArchName)
+		else
+			printSubStep("Ensure library is built for: " + cOSName + "/" + cArchName)
+		}
+		printInfo("See build instructions: " + buildPath([cPackagePath, "README.md"]))
+		return false
+	}
+
+	# ========================================================================
+	# Installation
+	# ========================================================================
+
+	func performInstallation() {
+		printHeader("Installing " + C_PRETTY_NAME)
+		
+		try {
+			printStep("Installing library for " + cOSName + "/" + cArchName + "…")
+			installLibrary()
+			printSuccess("Library installed")
+			
+			printStep("Copying examples…")
+			copyExamples()
+			printSuccess("Examples copied")
+			
+			printStep("Updating Ring configuration…")
+			updateRingConfig()
+			printSuccess("Configuration updated")
+			
+			printStep("Setting up Ring2EXE…")
+			setupRing2EXE()
+			printSuccess("Ring2EXE configured")
+			
+			showSuccessMessage()
+		catch
+			printError("Failed to install " + C_PRETTY_NAME + "!")
+			printSubStep("Details: " + cCatchError)
+		}
+	}
+
+	func installLibrary() {
+		if (isWindows()) {
+			installWindowsLibrary()
+		else
+			installUnixLibrary()
+		}
+	}
+
+	func installWindowsLibrary() {
+		systemSilent('copy /y "' + cLibPath + '" "' + exefolder() + '"')
+	}
+
+	func installUnixLibrary() {
+		cRingLibDir = buildPath([exefolder(), "..", "lib"])
+
+		# Determine system library directory
+		if (isFreeBSD() || isMacOSX()) {
+			cSystemLibDir = "/usr/local/lib"
+		else
+			cSystemLibDir = "/usr/lib"
+		}
+
+		# Symlink to Ring lib directory
+		system('ln -sf "' + cLibPath + '" "' + cRingLibDir + '"')
+
+		# Symlink to system lib directory (with privilege escalation fallback)
+		cLinkCmd = 'ln -sf "' + cLibPath + '" "' + cSystemLibDir + '"'
+		system(buildElevatedCommand(cLinkCmd))
+	}
+
+	func buildElevatedCommand(baseCmd) {
+		return 'which sudo >/dev/null 2>&1 && sudo ' + baseCmd +
+			   ' || (which doas >/dev/null 2>&1 && doas ' + baseCmd +
+			   ' || ' + baseCmd + ')'
+	}
+
+	# ========================================================================
+	# Examples & Configuration
+	# ========================================================================
+
+	func copyExamples() {
+		cOriginalDir = currentdir()
+
+		ensureDirectory(buildPath([exefolder(), "..", "samples"]))
+		makeDir(cSamplesPath)
+		chdir(cSamplesPath)
+
+		aItems = dir(cExamplesPath)
+		if (isNull(aItems)) {
+			chdir(cOriginalDir)
+			return
+		}
+
+		for item in aItems {
+			cSourcePath = cExamplesPath + cPathSep
+			if (item[2]) {
+				OSCopyFolder(cSourcePath, item[1])
+			else
+				OSCopyFile(cSourcePath + item[1])
+			}
+		}
+
+		chdir(cOriginalDir)
 	}
 	
-	// Ensure the Ring2EXE libs directory exists
-	if (direxists(exefolder() + ".." + cPathSep + "tools" + cPathSep + "ring2exe" + cPathSep + "libs")) {
-		// Write the library definition to the toml.ring file for Ring2EXE
-		write(exefolder() + ".." + cPathSep + "tools" + cPathSep + "ring2exe" + cPathSep + "libs" + cPathSep + "toml.ring", getRing2EXEContent())
+	func updateRingConfig() {
+		cOldConfigPath = buildPath([exefolder(), C_PACKAGE_NAME + ".ring"])
+
+		if (fexists(cOldConfigPath)) {
+			remove(cOldConfigPath)
+		}
+
+		# Ensure load directory exists
+		cLoadDir = buildPath([exefolder(), "load"])
+		ensureDirectory(cLoadDir)
+
+		cNewConfigPath = buildPath([cLoadDir, C_NEW_PACKAGE_NAME + ".ring"])
+		cLoadStatement = 'load "../../tools/ringpm/packages/' + C_PACKAGE_NAME + '/lib.ring"'
+		write(cNewConfigPath, cLoadStatement)
 	}
-	
-	? colorText([:text = "Successfully installed Ring TOML!", :color = :BRIGHT_GREEN, :style = :BOLD])
-	? colorText([:text = "You can refer to samples in: ", :color = :CYAN]) + colorText([:text = cSamplesPath, :color = :YELLOW])
-	? colorText([:text = "Or in the package directory: ", :color = :CYAN]) + colorText([:text = cExamplesPath, :color = :YELLOW])
-catch
-	? colorText([:text = "Error: Failed to install Ring TOML!", :color = :BRIGHT_RED, :style = :BOLD])
-	? colorText([:text = "Details: ", :color = :YELLOW]) + colorText([:text = cCatchError, :color = :CYAN])
-}
 
+	func setupRing2EXE() {
+		cLibsDir = buildPath([exefolder(), "..", "tools", "ring2exe", "libs"])
 
-func getRing2EXEContent() {
-	return `aLibrary = [:name = :toml,
-	 :title = "TOML",
-	 :windowsfiles = [
-		"ring_toml.dll"
-	 ],
-	 :linuxfiles = [
-		"libring_toml.so"
-	 ],
-	 :macosxfiles = [
-		"libring_toml.dylib"
-	 ],
-	 :freebsdfiles = [
-		"libring_toml.so"
-	 ],
-	 :ubuntudep = "",
-	 :fedoradep = "",
-	 :macosxdep = "",
-	 :freebsddep = ""
-	]`
+		if (!direxists(cLibsDir)) {
+			return
+		}
+
+		cConfigPath = buildPath([cLibsDir, C_NEW_PACKAGE_NAME + ".ring"])
+		write(cConfigPath, generateRing2EXEConfig())
+	}
+
+	func generateRing2EXEConfig() {
+		return 'aLibrary = [
+	:name         = :' + C_NEW_PACKAGE_NAME + ',
+	:title        = "' + C_PRETTY_NAME + '",
+	:windowsfiles = ["' + C_LIB_NAME + '.dll"],
+	:linuxfiles   = ["lib' + C_LIB_NAME + '.so"],
+	:macosxfiles  = ["lib' + C_LIB_NAME + '.dylib"],
+	:freebsdfiles = ["lib' + C_LIB_NAME + '.so"],
+	:ubuntudep    = "",
+	:fedoradep    = "",
+	:macosxdep    = ""
+]'
+	}
+
+	func showSuccessMessage() {
+		? ""
+		printSuccess(C_PRETTY_NAME + " installed successfully!")
+		? ""
+		printInfo("Samples: " + cSamplesPath)
+		printInfo("Examples: " + cExamplesPath)
+		? ""
+	}
+
+	# ========================================================================
+	# Utility Methods
+	# ========================================================================
+
+	func buildPath(aComponents) {
+		cResult = ""
+		nCount  = len(aComponents)
+
+		for i = 1 to nCount {
+			cResult += aComponents[i]
+			if (i < nCount) {
+				cResult += cPathSep
+			}
+		}
+
+		return cResult
+	}
+
+	func ensureDirectory(cPath) {
+		if (!direxists(cPath)) {
+			makeDir(cPath)
+		}
+	}
 }
