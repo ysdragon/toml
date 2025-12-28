@@ -2,28 +2,29 @@ name: Ubuntu Build
 
 on:
   workflow_call:
-
+    inputs:
+      ring-version:
+        required: true
+        type: string
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.arch == 'amd64' && 'ubuntu-latest' || 'ubuntu-24.04-arm' }}
     strategy:
       matrix:
         include:
-        - os: ubuntu-24.04
-          arch: amd64
+        - arch: amd64
           name: ubuntu-24.04-amd64
-        - os: ubuntu-24.04-arm
-          arch: arm64
+        - arch: arm64
           name: ubuntu-24.04-arm64
 
     steps:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake build-essential zenity libgtk-4-dev
+        sudo apt-get install -y cmake build-essential
 
-    - name: Checkout toml
+    - name: Checkout ring-toml
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -33,7 +34,7 @@ jobs:
       with:
         repository: ring-lang/ring
         path: ring
-        ref: v1.23
+        ref: ${{ inputs.ring-version }}
 
     - name: Build and Install Ring Language
       run: |
@@ -44,7 +45,7 @@ jobs:
     - name: Set RING environment variable
       run: echo "RING=$(pwd)/ring" >> $GITHUB_ENV
 
-    - name: Build toml lib
+    - name: Build ring-toml lib
       run: |
         rm -rf lib
         cmake . -DCMAKE_BUILD_TYPE=Release
@@ -53,5 +54,5 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: toml-${{ matrix.name }}
+        name: ring-toml-${{ matrix.name }}
         path: lib

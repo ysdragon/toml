@@ -2,7 +2,10 @@ name: macOS Build
 
 on:
   workflow_call:
-
+    inputs:
+      ring-version:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -10,7 +13,7 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: macos-13
+        - os: macos-15-intel
           arch: amd64
           name: macos-amd64
         - os: macos-latest
@@ -18,7 +21,7 @@ jobs:
           name: macos-arm64
 
     steps:
-    - name: Checkout toml
+    - name: Checkout ring-toml
       uses: actions/checkout@v4
       with:
         submodules: recursive
@@ -28,7 +31,7 @@ jobs:
       with:
         repository: ring-lang/ring
         path: ring
-        ref: v1.23
+        ref: ${{ inputs.ring-version }}
 
     - name: Build and Install Ring Language
       run: |
@@ -39,7 +42,7 @@ jobs:
     - name: Set RING environment variable
       run: echo "RING=$(pwd)/ring" >> $GITHUB_ENV
 
-    - name: Build toml lib
+    - name: Build ring-toml lib
       run: |
         rm -rf lib
         cmake . -DCMAKE_BUILD_TYPE=Release
@@ -48,5 +51,5 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: toml-${{ matrix.name }}
+        name: ring-toml-${{ matrix.name }}
         path: lib
