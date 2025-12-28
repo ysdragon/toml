@@ -5,11 +5,11 @@ aPackageInfo = [
 	:developer = "ysdragon",
 	:email = "youssefelkholey@gmail.com",
 	:license = "MIT License",
-	:version = "1.2.1",
+	:version = "1.3.0",
 	:ringversion = "1.22",
 	:versions = 	[
 		[
-			:version = "1.2.1",
+			:version = "1.3.0",
 			:branch = "master"
 		]
 	],
@@ -26,7 +26,6 @@ aPackageInfo = [
 		"src/toml.ring",
 		"src/toml.rh",
 		"src/ring_toml.c",
-		"src/tomlc17.cf",
 		"CMakeLists.txt",
 		"src/utils/color.ring",
 		"src/utils/install.ring",
