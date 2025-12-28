@@ -88,6 +88,14 @@ see aTomlList
 *   `toml_get(pTomlResult, cPath)`: Retrieves a value from the parsed TOML data using a dot-separated path.
     *   `pTomlResult`: The pointer returned by `toml_parse()` or `toml_parse_file()`.
     *   `cPath`: A string representing the path to the desired value (e.g., `"database.user.name"`, `"products[2].sku"`).
+    *   Returns `NULL` for invalid paths (empty, consecutive dots, leading/trailing dots).
+
+*   `toml_exists(pTomlResult, cPath)`: Checks if a key exists at the given path.
+    *   Returns `true` if the path exists, `false` otherwise.
+
+*   `toml_keys(pTomlResult, cPath)`: Returns a list of keys at the given path.
+    *   If `cPath` is empty or `NULL`, returns top-level keys.
+    *   Returns `NULL` if the path doesn't exist or doesn't point to a table.
 
 ### Core Extension Functions
 
@@ -134,6 +142,10 @@ ring tests/TOML_test.ring
 ```
 
 The test script will parse `tests/test.toml` and run a series of assertions against the parsed data, covering all major features of the library.
+
+## Limitations
+
+*   **Read-only**: This library currently only supports parsing TOML. Writing/serializing Ring data structures back to TOML format is not yet supported (the underlying `tomlc17` library is parser-only).
 
 ## License
 
