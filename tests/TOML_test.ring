@@ -10,7 +10,7 @@ elseif (isLinux())
 	if (getarch() = "x64") {
 		loadlib("../lib/linux/amd64/libring_toml.so")
 	elseif (getarch() = "arm64")
-		loadlib("lib/linux/arm64/libring_toml.so")
+		loadlib("../lib/linux/arm64/libring_toml.so")
 	}
 elseif (isFreeBSD())
 	if (getarch() = "x64") {
@@ -103,6 +103,23 @@ class TomlTest {
 		run("test_helper_get_from_array_of_tables", "test_helper_get_from_array_of_tables")
 		? ""
 
+		? "Testing toml_exists..."
+		run("test_exists_valid_path", "test_exists_valid_path")
+		run("test_exists_invalid_path", "test_exists_invalid_path")
+		? ""
+
+		? "Testing toml_keys..."
+		run("test_keys_top_level", "test_keys_top_level")
+		run("test_keys_nested_table", "test_keys_nested_table")
+		run("test_keys_invalid_path", "test_keys_invalid_path")
+		? ""
+
+		? "Testing path validation..."
+		run("test_path_validation_empty", "test_path_validation_empty")
+		run("test_path_validation_dots", "test_path_validation_dots")
+		run("test_path_validation_array_index", "test_path_validation_array_index")
+		? ""
+
 		? "========================================"
 		? "Test Summary:"
 		? "  Total Tests: " + nTestsRun
@@ -178,5 +195,59 @@ class TomlTest {
 		
 		nProductSku = toml_get(pTomlResult, "products[1].sku")
 		assert(nProductSku = 738594937, "Ring helper should handle numeric values in array of tables.")
+	}
+
+	// toml_exists tests
+	func test_exists_valid_path() {
+		assert(toml_exists(pTomlResult, "author") = true, "toml_exists should return true for existing top-level key.")
+		assert(toml_exists(pTomlResult, "database.ip_address") = true, "toml_exists should return true for nested key.")
+		assert(toml_exists(pTomlResult, "products[1].name") = true, "toml_exists should return true for array item path.")
+	}
+
+	func test_exists_invalid_path() {
+		assert(toml_exists(pTomlResult, "nonexistent") = false, "toml_exists should return false for non-existent key.")
+		assert(toml_exists(pTomlResult, "database.nonexistent") = false, "toml_exists should return false for non-existent nested key.")
+		assert(toml_exists(pTomlResult, "products[999].name") = false, "toml_exists should return false for out-of-bounds index.")
+	}
+
+	// toml_keys tests
+	func test_keys_top_level() {
+		aKeys = toml_keys(pTomlResult, "")
+		assert(islist(aKeys), "toml_keys should return a list for top-level.")
+		assert(len(aKeys) > 0, "toml_keys should return non-empty list for top-level.")
+		assert(find(aKeys, "author") > 0, "Top-level keys should include 'author'.")
+	}
+
+	func test_keys_nested_table() {
+		aKeys = toml_keys(pTomlResult, "database")
+		assert(islist(aKeys), "toml_keys should return a list for nested table.")
+		assert(find(aKeys, "ip_address") > 0, "database keys should include 'ip_address'.")
+		assert(find(aKeys, "user") > 0, "database keys should include 'user'.")
+	}
+
+	func test_keys_invalid_path() {
+		aKeys = toml_keys(pTomlResult, "nonexistent")
+		assert(isNull(aKeys), "toml_keys should return NULL for non-existent path.")
+		
+		aKeys = toml_keys(pTomlResult, "author")
+		assert(isNull(aKeys), "toml_keys should return NULL for non-table value.")
+	}
+
+	// Path validation tests
+	func test_path_validation_empty() {
+		assert(isNull(toml_get(pTomlResult, "")), "Empty path should return NULL.")
+		assert(isNull(toml_get(pTomlResult, "   ")), "Whitespace-only path should return NULL.")
+	}
+
+	func test_path_validation_dots() {
+		assert(isNull(toml_get(pTomlResult, ".author")), "Leading dot should return NULL.")
+		assert(isNull(toml_get(pTomlResult, "author.")), "Trailing dot should return NULL.")
+		assert(isNull(toml_get(pTomlResult, "database..user")), "Consecutive dots should return NULL.")
+	}
+
+	func test_path_validation_array_index() {
+		assert(isNull(toml_get(pTomlResult, "products[]")), "Empty array index should return NULL.")
+		assert(isNull(toml_get(pTomlResult, "products[0]")), "Zero index should return NULL (Ring is 1-based).")
+		assert(isNull(toml_get(pTomlResult, "products[-1]")), "Negative index should return NULL.")
 	}
 }
