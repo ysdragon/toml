@@ -95,8 +95,26 @@ see aTomlList
 *   `toml_parse_file(cFilePath)`: Parses a TOML file. Returns a pointer to the parsed result.
 *   `toml2list(pTomlResult)`: Converts the entire parsed TOML result into a Ring list.
 *   `toml_get_ex(pTomlResult, cKey)`: Retrieves a specific value, table, or array by its key from the top level.
-*   `toml_type(pTomlResult, cKey)`: Returns the TOML type of a value by its key as an integer.
+*   `toml_type(pTomlResult, cKey)`: Returns the TOML type of a value by its key as an integer (see Type Constants below).
 *   `toml_lasterror()`: Returns a string containing the last error message if a parsing operation fails.
+
+### Type Constants
+
+These constants are defined in `toml.rh` and can be used with `toml_type()` for type checking:
+
+| Constant | Description |
+|----------|-------------|
+| `TOML_UNKNOWN` | Unknown or invalid type |
+| `TOML_STRING` | String value |
+| `TOML_INT64` | Integer value |
+| `TOML_FP64` | Floating-point value |
+| `TOML_BOOLEAN` | Boolean value |
+| `TOML_DATE` | Date (YYYY-MM-DD) |
+| `TOML_TIME` | Time (HH:MM:SS) |
+| `TOML_DATETIME` | Date and time without timezone |
+| `TOML_DATETIMETZ` | Date and time with timezone |
+| `TOML_ARRAY` | Array |
+| `TOML_TABLE` | Table (inline or standard) |
 
 ## Examples
 
