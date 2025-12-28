@@ -3,6 +3,8 @@
  *  This helper function finds a value in the parsed TOML data using a dot-separated path.
  */
 func toml_get(data, path) {
+	if (isNull(data)) { return NULL }
+	
 	aParts = split(path, ".")
 	current_data = toml2list(data)
 	for part in aParts {
