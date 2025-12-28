@@ -1,42 +1,56 @@
 cmake_minimum_required(VERSION 3.16)
-project(RingTOML)
+project(RingTOML LANGUAGES C)
 
 include(FetchContent)
 find_package(Git QUIET)
 
-# Get the Ring source directory from environment or use default
-if(NOT DEFINED ENV{RING})
-	set(RING "${CMAKE_CURRENT_SOURCE_DIR}/../..")
-	message(STATUS "RING not defined, using default: ${RING}")
-else()
-	set(RING $ENV{RING})
-	message(STATUS "Using Ring from environment: ${RING}")
+set(RING_ROOT_DEFAULT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+if(DEFINED ENV{RING})
+	set(RING_ROOT_DEFAULT "$ENV{RING}")
+endif()
+set(RING_ROOT "${RING_ROOT_DEFAULT}" CACHE PATH "Path to the Ring project root directory.")
+message(STATUS "Using Ring from: ${RING_ROOT}")
+
+if(NOT TARGET Ring::Ring)
+	add_library(Ring::Ring UNKNOWN IMPORTED)
+	find_path(RING_INCLUDE_DIR ring.h PATHS "${RING_ROOT}/language/include")
+	find_library(RING_LIBRARY_PATH NAMES ring PATHS "${RING_ROOT}/lib")
+
+	if(NOT RING_INCLUDE_DIR OR NOT RING_LIBRARY_PATH)
+		message(FATAL_ERROR "Could not find Ring headers or library in ${RING_ROOT}. "
+							"Please set the RING_ROOT cache variable correctly.")
+	endif()
+
+	set_target_properties(Ring::Ring PROPERTIES
+		IMPORTED_LOCATION "${RING_LIBRARY_PATH}"
+		INTERFACE_INCLUDE_DIRECTORIES "${RING_INCLUDE_DIR}"
+	)
 endif()
 
 # Set paths
-set(RING_INCLUDE "${RING}/language/include")
-set(RING_LIB "${RING}/lib")
-set(CODEGEN_SCRIPT "${RING}/extensions/codegen/parsec.ring")
+set(RING_INCLUDE "${RING_ROOT}/language/include")
+set(RING_LIB "${RING_ROOT}/lib")
+set(CODEGEN_SCRIPT "${RING_ROOT}/extensions/codegen/parsec.ring")
 
 # Build the tomlc17 object library
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
-    FetchContent_Declare(
-        tomlc17_external
-        GIT_REPOSITORY https://github.com/cktan/tomlc17.git
-        GIT_TAG main
-    )
-    FetchContent_MakeAvailable(tomlc17_external)
-    set(TOMLC17_SOURCE_DIR "${tomlc17_external_SOURCE_DIR}")
-    if(EXISTS "${TOMLC17_SOURCE_DIR}/tomlc17.c")
-        set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/tomlc17.c")
-    elseif(EXISTS "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
-        set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
-    else()
-        message(FATAL_ERROR "Could not find tomlc17.c in fetched tomlc17 repository.")
-    endif()
+	FetchContent_Declare(
+		tomlc17_external
+		GIT_REPOSITORY https://github.com/cktan/tomlc17.git
+		GIT_TAG main
+	)
+	FetchContent_MakeAvailable(tomlc17_external)
+	set(TOMLC17_SOURCE_DIR "${tomlc17_external_SOURCE_DIR}")
+	if(EXISTS "${TOMLC17_SOURCE_DIR}/tomlc17.c")
+		set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/tomlc17.c")
+	elseif(EXISTS "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
+		set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
+	else()
+		message(FATAL_ERROR "Could not find tomlc17.c in fetched tomlc17 repository.")
+	endif()
 else()
-    set(TOMLC17_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
-    set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
+	set(TOMLC17_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17")
+	set(TOMLC17_C_FILE "${TOMLC17_SOURCE_DIR}/src/tomlc17.c")
 endif()
 
 add_library(tomlc17 OBJECT
@@ -49,81 +63,74 @@ target_include_directories(tomlc17 PUBLIC
 
 # Generate the C source code from the configuration file
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c")
-    add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
-        COMMAND ${RING}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.rh
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
-        COMMENT "Generating C code from tomlc17.cf"
-        VERBATIM
-    )
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
+		COMMAND ${RING_ROOT}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.rh
+		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
+		COMMENT "Generating C code from tomlc17.cf"
+		VERBATIM
+	)
 endif()
 
 # Determine OS and Architecture specific paths
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	set(OS_DIR "linux")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-	set(OS_DIR "freebsd")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	set(OS_DIR "windows")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" OS_DIR)
+if(OS_DIR STREQUAL "darwin")
 	set(OS_DIR "macos")
-else()
-	message(FATAL_ERROR "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-# Determine architecture
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ARCH_DIR_RAW)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND DEFINED CMAKE_GENERATOR_PLATFORM)
-    if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-        set(ARCH_DIR "i386")
-    elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
-        set(ARCH_DIR "amd64")
-    elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-        set(ARCH_DIR "arm64")
-    else()
-        message(WARNING "Unsupported CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}, falling back to CMAKE_SYSTEM_PROCESSOR")
-    endif()
+	if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+		set(ARCH_DIR_RAW "i386")
+	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+		set(ARCH_DIR_RAW "amd64")
+	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+		set(ARCH_DIR_RAW "arm64")
+	else()
+		message(WARNING "Unsupported CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}, falling back to CMAKE_SYSTEM_PROCESSOR")
+	endif()
 endif()
 
-# Fallback to CMAKE_SYSTEM_PROCESSOR if ARCH_DIR is not set
 if(NOT DEFINED ARCH_DIR)
-    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LC)
-    if(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "x86_64|amd64")
-        set(ARCH_DIR "amd64")
-    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "aarch64|arm64")
-        set(ARCH_DIR "arm64")
-    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "riscv64")
-        set(ARCH_DIR "riscv64")
-    elseif(CMAKE_SYSTEM_PROCESSOR_LC MATCHES "i386|i686|x86")
-        set(ARCH_DIR "i386")
-    else()
-        message(FATAL_ERROR "Unsupported architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-    endif()
+	if(ARCH_DIR_RAW MATCHES "x86_64|amd64")
+		set(ARCH_DIR "amd64")
+	elseif(ARCH_DIR_RAW MATCHES "aarch64|arm64")
+		set(ARCH_DIR "arm64")
+	elseif(ARCH_DIR_RAW MATCHES "riscv64")
+		set(ARCH_DIR "riscv64")
+	elseif(ARCH_DIR_RAW MATCHES "i386|i686|x86")
+		set(ARCH_DIR "i386")
+	else()
+		set(ARCH_DIR "${ARCH_DIR_RAW}")
+		message(WARNING "Unsupported architecture: ${ARCH_DIR_RAW}. Using as directory name.")
+	endif()
 endif()
 
 # Detect musl libc
 option(MUSL "Build for musl libc" OFF)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    # Auto-detect musl if not explicitly set
-    if(NOT MUSL)
-        execute_process(
-            COMMAND ldd --version
-            OUTPUT_VARIABLE LDD_OUTPUT
-            ERROR_VARIABLE LDD_OUTPUT
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        if(LDD_OUTPUT MATCHES "musl")
-            set(MUSL ON)
-            message(STATUS "Detected musl libc")
-        endif()
-    endif()
+	# Auto-detect musl if not explicitly set
+	if(NOT MUSL)
+		execute_process(
+			COMMAND ldd --version
+			OUTPUT_VARIABLE LDD_OUTPUT
+			ERROR_VARIABLE LDD_OUTPUT
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+		if(LDD_OUTPUT MATCHES "musl")
+			set(MUSL ON)
+			message(STATUS "Detected musl libc")
+		endif()
+	endif()
 endif()
 
 # Set the destination directory for the built library
 if(MUSL AND OS_DIR STREQUAL "linux")
-    set(LIB_DEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${OS_DIR}/musl/${ARCH_DIR}")
+	set(LIB_DEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${OS_DIR}/musl/${ARCH_DIR}")
 else()
-    set(LIB_DEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${OS_DIR}/${ARCH_DIR}")
+	set(LIB_DEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/${OS_DIR}/${ARCH_DIR}")
 endif()
 
 # Create the Ring TOML extension shared library
@@ -136,33 +143,30 @@ target_include_directories(ring_toml PRIVATE
 	${RING_INCLUDE}
 )
 
-# Enable optimizations and strip debug symbols for release builds
-if(NOT CMAKE_BUILD_TYPE MATCHES Debug)
-	if(UNIX)
-		target_compile_options(ring_toml PRIVATE -O3 -DNDEBUG)
-		target_compile_options(tomlc17 PRIVATE -O3 -DNDEBUG)
-		target_link_options(ring_toml PRIVATE -s)
-	elseif(WIN32)
-		target_compile_options(ring_toml PRIVATE /O2 /DNDEBUG)
-		target_compile_options(tomlc17 PRIVATE /O2 /DNDEBUG)
-	endif()
-endif()
-
 # Link libraries
-if(WIN32)
-	target_link_libraries(ring_toml PRIVATE
-		${RING_LIB}/ring.lib
-		tomlc17
-	)
-else()
-	target_link_libraries(ring_toml PRIVATE
-		${RING_LIB}/libring${CMAKE_SHARED_LIBRARY_SUFFIX}
-		tomlc17
-	)
-endif()
+target_link_libraries(ring_toml PRIVATE
+	Ring::Ring
+	tomlc17
+)
+
+target_compile_options(ring_toml PRIVATE
+	$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:
+		$<$<C_COMPILER_ID:MSVC>:/O2>
+		$<$<NOT:$<C_COMPILER_ID:MSVC>>:-O3>
+		-DNDEBUG
+	>
+)
+
+target_compile_options(tomlc17 PRIVATE
+	$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:
+		$<$<C_COMPILER_ID:MSVC>:/O2>
+		$<$<NOT:$<C_COMPILER_ID:MSVC>>:-O3>
+		-DNDEBUG
+	>
+)
 
 # Set target properties for output name and prefix
-if(WIN32)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set_target_properties(ring_toml PROPERTIES
 		OUTPUT_NAME "ring_toml"
 	)
@@ -185,10 +189,10 @@ add_custom_command(
 
 # Install rule
 install(TARGETS ring_toml
-	LIBRARY DESTINATION ${RING_LIB}
+	LIBRARY DESTINATION "${RING_ROOT}/lib"
 )
 
 # Print info message
 message(STATUS "Ring TOML Extension Configuration:")
-message(STATUS "  - Ring Include Dir: ${RING_INCLUDE}")
-message(STATUS "  - Ring Library Dir: ${RING_LIB}")
+message(STATUS "  - Ring Include Dir: ${RING_INCLUDE_DIR}")
+message(STATUS "  - Ring Library Path: ${RING_LIBRARY_PATH}")
