@@ -61,18 +61,6 @@ target_include_directories(tomlc17 PUBLIC
 	${TOMLC17_SOURCE_DIR}/src
 )
 
-# Generate the C source code from the configuration file
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c")
-	add_custom_command(
-		OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}
-		COMMAND ${RING_ROOT}/bin/ring ${CODEGEN_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_toml.c ${CMAKE_CURRENT_SOURCE_DIR}/src/toml.rh
-		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/tomlc17.cf ${CODEGEN_SCRIPT} ${TOMLC17_SOURCE_DIR}/src/tomlc17.c
-		COMMENT "Generating C code from tomlc17.cf"
-		VERBATIM
-	)
-endif()
-
 # Determine OS and Architecture specific paths
 string(TOLOWER "${CMAKE_SYSTEM_NAME}" OS_DIR)
 if(OS_DIR STREQUAL "darwin")
