@@ -10,9 +10,9 @@
 
 /* Thread-safe storage for the last error message */
 #if defined(_MSC_VER)
-static __declspec(thread) char gc_toml_last_error[256] = {0};
+static __declspec(thread) char gc_toml_last_error[512] = {0};
 #else
-static _Thread_local char gc_toml_last_error[256] = {0};
+static _Thread_local char gc_toml_last_error[512] = {0};
 #endif
 
 /* Forward declarations for the recursive conversion functions */
