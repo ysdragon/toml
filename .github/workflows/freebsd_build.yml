@@ -13,11 +13,11 @@ jobs:
     strategy:
       matrix:
         include:
-        - release: "14.3"
+        - release: "15.0"
           arch: amd64
           arch_name: amd64
           name: freebsd-amd64
-        - release: "14.3"
+        - release: "15.0"
           arch: aarch64
           arch_name: arm64
           name: freebsd-arm64
@@ -29,7 +29,7 @@ jobs:
 
     - name: Build in FreeBSD VM
       id: freebsd_build
-      uses: vmactions/freebsd-vm@v1.2.8
+      uses: vmactions/freebsd-vm@v1.4.2
       with:
         release: ${{ matrix.release }}
         arch: ${{ matrix.arch }}
