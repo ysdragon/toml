@@ -22,7 +22,7 @@ ringpm install toml from ysdragon
 
 ##### Prerequisites
 
-*   [Ring](http://ring-lang.net) programming language (1.22 or later)
+*   [Ring](http://ring-lang.net) programming language (1.27 or later)
 *   CMake (3.5 or later)
 *   C compiler (GCC, Clang, or MSVC)
 
